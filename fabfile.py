@@ -1,6 +1,6 @@
 from __future__ import with_statement
 from functools import wraps, partial
-import os, os.path
+import os, os.path, time
 import itertools
 
 from fabric.api import *
@@ -12,7 +12,7 @@ DJANGO_PORT = 81
 BRANCH = 'master'
 PROJECT_NAME = 'fixjam'
 PROJECT_DIR = '/project/%s' % PROJECT_NAME
-DB_PASS = '290jsg2390j32t93j932093' # Should not contain quotes; coupled w/settings.py
+DB_PASS = 'CHANGEME' # Should not contain quotes; coupled w/settings.py
 GIT_REPOSITORY = 'git@github.com:reverie/fixjam.git'
 
 # TODO: better way to support roles/roledefs -- patch fabric??
@@ -41,7 +41,10 @@ def upload_template(src, dest, *args, **kwargs):
     sudo('chmod +r %s' % dest)
 
 def boxed_task(name):
-    """So you can use e.g. Pip.install_requirements as a task."""
+    """So you can use e.g. Pip.install_requirements as a task.
+   
+    E.g.: 'boxed_task:Pip.install_requirements'
+    """
     box, task = name.split('.', 1)
     box = globals()[box]
     task = getattr(box, task)
@@ -53,6 +56,7 @@ def boxed_task(name):
 
 def stage_dev():
     env.NUM_UPDATERS = 1
+    env.user = os.getenv('USER')
     env.stage = {
             'hostname': 'dev.fixjam.com'
         }
@@ -66,9 +70,9 @@ def stage_dev():
 
 def stage_staging():
     env.NUM_UPDATERS = 1
-    env.user = 'ubuntu'
+    env.user = 'root'
     env.stage = {
-            'hostname': 'staging.fixjam.com' # AWS i-d44ea790 
+            'hostname': 'staging.fixjam.com'
         }
     env.my_roledefs = dict(
         zip(
@@ -79,23 +83,22 @@ def stage_staging():
     env.hosts = [env.stage['hostname']]
 
 def stage_production():
-    # Here, we don't assign hosts, because we need full-manual control of hosts. 
-    # Fabric does not support the kind of operations I want to do.
-    # Don't even use the real roledefs, because Fabric might do something with them.
+    # We don't use the built-in roledefs, because we want more control
+    SERVER_IP = '96.126.114.12'
     env.NUM_UPDATERS = 4
-    env.user = 'andrew'
+    env.user = 'root'
     env.stage = {
             'hostname': 'www.fixjam.com'
         }
     env.my_roledefs = dict(
         zip(
             ROLES, 
-            itertools.repeat([(env.stage['hostname'], '127.0.0.1')])
+            itertools.repeat([(SERVER_IP, '127.0.0.1')])
         )
     )
-    env.hosts = [env.stage['hostname']]
+    env.hosts = [SERVER_IP]
     assert set(env.my_roledefs.keys()) == set(ROLES)
-    # These assumptions are used e.g. in nginx config:
+    # These assumptions are used in the nginx config:
     assert len(env.my_roledefs['django']) == 1
     assert len(env.my_roledefs['database']) == 1
     assert len(env.my_roledefs['smtp']) == 1
@@ -213,9 +216,6 @@ def bootstrap_everything():
     restart_database()
     restart_django() # Must be done before nginx so that port 80 is free
     restart_nginx()
-    print '*'*20
-    print 'Now either restart or "sudo /usr/bin/svscanboot &" (fixme)'
-    print '*'*20
 
 def bootstrap_database():
     assert Roledefs.role_matches('database')
@@ -268,11 +268,14 @@ def install_common():
     for dirname in ['releases', 'packages', 'bin', 'log']:
         sudo('mkdir -p %s' % os.path.join(PROJECT_DIR, dirname))
     setup_permissions('/project')
+    log_dir = os.path.join(PROJECT_DIR, 'log')
+    sudo('chmod g+s %s' % log_dir)
     install_private_key()
 
 def install_private_key():
     run('mkdir -p ~/.ssh')
     put('./server/id_rsa', '~/.ssh/id_rsa')
+    put('./server/id_rsa.pub', '~/.ssh/id_rsa.pub')
     run('chmod 600 ~/.ssh/id_rsa')
     # So we can git clone from git@github.com w/o manual setup
     put('./server/known_hosts', '~/.ssh/known_hosts')
@@ -292,8 +295,9 @@ def install_processor():
     server-side code.
     """
     assert Roledefs.role_matches('nginx')
-    put('./server/processor/compiler.jar', os.path.join(PROJECT_DIR, 'bin', 'compiler.jar'))
-    put('./server/processor/processor', os.path.join(PROJECT_DIR, 'bin', 'processor'))
+    return
+    #put('./server/processor/compiler.jar', os.path.join(PROJECT_DIR, 'bin', 'compiler.jar'))
+    #put('./server/processor/processor', os.path.join(PROJECT_DIR, 'bin', 'processor'))
 
 def install_django():
     assert Roledefs.role_matches('django')
@@ -303,7 +307,7 @@ def install_django():
         # TODO: may not install virtualenv if it failed earlier.
         # better test than exists?
         sudo('mkdir -p %s' % env_dir)
-        sudo('virtualenv --no-site-packages %s' % env_dir)
+        sudo('virtualenv %s' % env_dir)
     setup_permissions(env_dir)
     Pip.install_requirements()
     Apt.install('apache2', 'postgresql-client', 'libapache2-mod-wsgi')
@@ -420,10 +424,22 @@ def deploy_related(f):
 
 class Deploy(object):
 
+    run_time = time.time()
+
     @staticmethod
     @deploy_related
     def get_current_commit():
         return local('git rev-parse --verify %s' % BRANCH).strip()
+
+    @staticmethod
+    @deploy_related
+    def get_time_str():
+        return time.strftime('%Y-%m-%d-%H-%M-%S', time.localtime(Deploy.run_time))
+
+    @staticmethod
+    @deploy_related
+    def get_release_name():
+        return Deploy.get_time_str() + '_' + Deploy.get_current_commit()
 
     @staticmethod
     @deploy_related
@@ -442,14 +458,16 @@ class Deploy(object):
     @staticmethod
     @deploy_related
     def upload_new_release():
-        name = Deploy.get_current_commit()
+        name = Deploy.get_release_name()
         release_dir = Deploy.get_release_dir(name)
         if exists(release_dir):
             assert release_dir.startswith(os.path.join(PROJECT_DIR, 'releases'))
             run('rm -rf %s' % release_dir)
         run('git clone %s %s' % (GIT_REPOSITORY, release_dir))
+        setup_permissions(release_dir)
+        current_commit = Deploy.get_current_commit()
         with cd(release_dir):
-            run('git reset --hard %s' % name)
+            run('git reset --hard %s' % current_commit)
         return name
 
     @staticmethod
@@ -467,13 +485,27 @@ class Deploy(object):
         #        # Processing of static files
         #        run(os.path.join(PROJECT_DIR, 'bin', 'processor') + ' ' + release_dir)
         if Roledefs.role_matches('django'):
-            print 'Doing django deploy component'
+            print 'Setting up Django settings symlinks'
             with cd(django_dir):
                 run('ln -nfs %s .' % os.path.join(PROJECT_DIR, 'stagesettings.py'))
                 run('ln -nfs %s .' % os.path.join(PROJECT_DIR, 'localsettings.py'))
+
+        if Roledefs.role_matches('database'):
+            # OPTIONAL: run a backup script
+            pass
+
+        if Roledefs.role_matches('django'):
+            print 'Doing Django database updates'
+            with cd(django_dir):
                 run('source /envs/default/bin/activate && python manage.py syncdb --noinput')
-                run('source /envs/default/bin/activate && python manage.py migrate')
+                run('source /envs/default/bin/activate && python manage.py migrate --noinput')
                 run('source /envs/default/bin/activate && python manage.py loaddata initial_data')
+
+        print 'Installing crontab'
+        crontab_path = os.path.join(release_dir, 'server/crontab')
+        # need to use the stdin formulation. For some reason the path in the normal form
+        # gets truncated.
+        run('crontab - < %s' % crontab_path)
 
     @staticmethod
     @deploy_related
@@ -486,8 +518,8 @@ class Deploy(object):
 @deploy_related
 def list_releases():
     with cd(os.path.join(PROJECT_DIR, 'releases')):
-        run('ls -ltc | grep -v total | cut -d " " --fields=6,7,8 | head -n 10')
-        run('ls -l %s | cut -d " " -f "10"' % os.path.join(PROJECT_DIR, 'current'))
+        run('''ls -ltc | grep -v total | awk '{print $6 " " $7 " " $8}' | head -n 10''')
+        run('ls -l %s | cut -d " " -f "10"' % os.path.join(PROJECT_DIR, CURRENT_RELEASE_DIR))
 
 prep_release = Deploy.prep_release
 
