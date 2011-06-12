@@ -1,0 +1,6 @@
+<VirtualHost *:{{ DJANGO_PORT }}>
+    ServerName fixjam.com
+	ServerAdmin andrewbadr@gmail.com
+    Alias /static/ /project/fixjam/current/static/
+    WSGIScriptAlias / /project/fixjam/wsgi.py
+</VirtualHost>

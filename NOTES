@@ -1,0 +1,7 @@
+ - there might be more stuff in the default_django_project 'common' that you want
+ - find . -type f | xargs perl -pi -e 's/fixjam/NEWPROJECT/g'
+ - mv fixjam NEWPROJECT
+ - change db password in fabfile and secret key in settings.py
+ - add logging settings for 1.3?
+ - change nginx config file name and doublecheck host within
+ - generate new RSA keypair, upload the public key to github as your deploy key
