@@ -8,14 +8,11 @@ from root_dir import root_dir
 admin.autodiscover()
 
 urlpatterns = patterns('fixjam.core.views',
-    (r'^admin/core/order/(\d+)/fill/$', 'fill_order'),
     (r'^admin/', include(admin.site.urls)),
     (r'^admin/doc/', include('django.contrib.admindocs.urls')),
     (r'^accounts/', include('registration.urls')),
 
     (r'^$', 'index'),
-    url(r'^meals/$', 'restaurant_list', name='restaurant_list'),
-    (r'^internal/', include('fixjam.core.internal_urls')),
 
 )
 

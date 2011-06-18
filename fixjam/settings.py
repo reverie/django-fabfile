@@ -95,7 +95,7 @@ INSTALLED_APPS = (
     'south',
     'registration',
     'fixjam.multiauth',
-    'fixjam.core'
+    'fixjam.main'
 )
 
 # Registration

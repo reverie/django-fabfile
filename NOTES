@@ -3,5 +3,8 @@
  - mv fixjam NEWPROJECT
  - change db password in fabfile and secret key in settings.py
  - add logging settings for 1.3?
+ - set hostname in fabfile
  - change nginx config file name and doublecheck host within
  - generate new RSA keypair, upload the public key to github as your deploy key
+ - double-check postfix domain
+ - add project dir to path in wsgi?
