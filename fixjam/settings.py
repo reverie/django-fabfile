@@ -74,7 +74,7 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.transaction.TransactionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'fixjam.multiauth.middleware.MultiAuthMiddleware'
+    #'fixjam.multiauth.middleware.MultiAuthMiddleware'
 )
 
 ROOT_URLCONF = 'fixjam.urls'
@@ -94,7 +94,7 @@ INSTALLED_APPS = (
     # 'django.contrib.admindocs',
     'south',
     'registration',
-    'fixjam.multiauth',
+    #'fixjam.multiauth',
     'fixjam.main'
 )
 

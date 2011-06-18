@@ -8,3 +8,4 @@
  - generate new RSA keypair, upload the public key to github as your deploy key
  - double-check postfix domain
  - add project dir to path in wsgi?
+ - do something about versions in requirements.txt
