@@ -55,7 +55,7 @@ def main():
     if len(sys.argv) != 2:
         usage()
     release_dir = sys.argv[1]
-    assert re.match('^/project/fixjam/releases/\w+$', release_dir)
+    assert re.match('^/project/foobar/releases/\w+$', release_dir)
     assert os.path.exists(release_dir)
     static_dir = os.path.join(release_dir, 'static')
     assert os.path.exists(static_dir)
@@ -78,7 +78,7 @@ def main():
         for f in files_to_compile:
             remove_console_log(f)
         command = [
-            'java', '-jar', '/project/fixjam/bin/compiler.jar', 
+            'java', '-jar', '/project/foobar/bin/compiler.jar', 
             '--compilation_level', 'SIMPLE_OPTIMIZATIONS',
         ]
         # 3. Compile
