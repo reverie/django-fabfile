@@ -1,0 +1,3 @@
+ - update versions in requirements.txt
+ - keep/remove multi-server support?
+ - check pg_hba format
