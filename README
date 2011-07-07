@@ -12,4 +12,6 @@ Non-features:
 - Running on servers other than Ubuntu 10.4
 
 Caveats:
+- Written for Fabric <1.0, haven't updated it yet
 - I haven't tried running this from Windows
+
