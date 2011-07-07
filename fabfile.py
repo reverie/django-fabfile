@@ -4,22 +4,26 @@ import os, os.path, time
 import itertools
 
 from fabric.api import *
-from fabric.contrib.files import append, exists
+from fabric.contrib.files import append, exists, comment
 from fabric.contrib.files import upload_template as orig_upload_template
 
-ROLES = ['nginx', 'django', 'database', 'smtp']
+# TODO: better way to support roles/roledefs -- patch fabric??
+
+# Stuff you're likely to change
+PROJECT_NAME = 'foobar'
+DOMAIN = 'foobar.com'
+GIT_REPOSITORY = 'git@github.com:reverie/foobar.git'
+PRODUCTION_USERNAME = 'root'
+PRODUCTION_IP = '66.228.59.82'
+DB_PASS = 'foo' # Should not contain quotes; coupled w/settings.py
+
+# Less likely to change:
 DJANGO_PORT = 81
 BRANCH = 'master'
-PROJECT_NAME = 'fixjam'
-PROJECT_DIR = '/project/%s' % PROJECT_NAME
-DB_PASS = 'CHANGEME' # Should not contain quotes; coupled w/settings.py
-GIT_REPOSITORY = 'git@github.com:reverie/fixjam.git'
-
-# TODO: better way to support roles/roledefs -- patch fabric??
-# XXX: upload_template does not preserve file permissions, http://code.fabfile.org/issues/show/117
-
-env.virtualenv = 'default'
 SERVER_GROUP = 'app'
+ROLES = ['nginx', 'django', 'database', 'smtp']
+PROJECT_DIR = '/project/%s' % PROJECT_NAME
+VIRTUALENV = '/envs/%s' % PROJECT_NAME
 
 #
 # Hax
@@ -36,6 +40,7 @@ def rrun(*args, **kwargs):
 def upload_template(src, dest, *args, **kwargs):
     """
     My wrapped version that sets +r.
+    # upload_template does not preserve file permissions, http://code.fabfile.org/issues/show/117
     """
     orig_upload_template(src, dest, *args, **kwargs)
     sudo('chmod +r %s' % dest)
@@ -50,6 +55,17 @@ def boxed_task(name):
     task = getattr(box, task)
     task()
 
+
+#
+# Helpers
+#
+
+def home_dir(*args):
+    # For some reason ~/.ssh/... stopped working as `put` arg, need to expand ~
+    if env.user == 'root':
+        return os.path.join("/root", *args)
+    return os.path.join("/home/%s" % env.user, *args)
+
 #
 # Stage management
 #
@@ -58,7 +74,7 @@ def stage_dev():
     env.NUM_UPDATERS = 1
     env.user = os.getenv('USER')
     env.stage = {
-            'hostname': 'dev.fixjam.com'
+            'hostname': 'dev.' + DOMAIN
         }
     env.my_roledefs = dict(
         zip(
@@ -70,9 +86,9 @@ def stage_dev():
 
 def stage_staging():
     env.NUM_UPDATERS = 1
-    env.user = 'root'
+    env.user = PRODUCTION_USERNAME
     env.stage = {
-            'hostname': 'staging.fixjam.com'
+            'hostname': 'staging.' + DOMAIN
         }
     env.my_roledefs = dict(
         zip(
@@ -84,24 +100,26 @@ def stage_staging():
 
 def stage_production():
     # We don't use the built-in roledefs, because we want more control
-    SERVER_IP = '96.126.114.12'
     env.NUM_UPDATERS = 4
-    env.user = 'root'
+    env.user = PRODUCTION_USERNAME
     env.stage = {
-            'hostname': 'www.fixjam.com'
+            'hostname': 'www.' + DOMAIN
         }
     env.my_roledefs = dict(
         zip(
             ROLES, 
-            itertools.repeat([(SERVER_IP, '127.0.0.1')])
+            itertools.repeat([(PRODUCTION_IP, '127.0.0.1')])
         )
     )
-    env.hosts = [SERVER_IP]
+    env.hosts = [PRODUCTION_IP]
     assert set(env.my_roledefs.keys()) == set(ROLES)
-    # These assumptions are used in the nginx config:
-    assert len(env.my_roledefs['django']) == 1
+
+    # This assumption is used in the Django config:
     assert len(env.my_roledefs['database']) == 1
-    assert len(env.my_roledefs['smtp']) == 1
+
+    # This assumption is used in the nginx config:
+    assert len(env.my_roledefs['django']) == 1
+
 
 #
 # Host selection
@@ -176,20 +194,15 @@ class Pip(object):
 
     @staticmethod
     def install(*pkgs):
-        require('virtualenv')
         for pkg in pkgs:
-            run('pip install -E %s -U %s' % (get_env_dir(), pkg))
+            run('pip install -E %s -U %s' % (VIRTUALENV, pkg))
 
     @staticmethod
     def install_requirements():
         REMOTE_FILENAME = './tmp_requirements.txt'
-        require('virtualenv')
         put('./server/requirements.txt', REMOTE_FILENAME)
-        run('pip install -E %s -r %s' % (get_env_dir(), REMOTE_FILENAME))
+        run('pip install -E %s -r %s' % (VIRTUALENV, REMOTE_FILENAME))
         run('rm %s' % REMOTE_FILENAME)
-
-def get_env_dir():
-    return '/envs/%s' % env.virtualenv
 
 def setup_permissions(dirname):
     sudo('chown -R %s:%s %s' % (env.user, SERVER_GROUP, dirname))
@@ -211,11 +224,13 @@ def bootstrap_everything():
     configure_nginx()
     configure_django()
     configure_database()
+    configure_smtp()
     restart_database() # Must be done before deploy so that syncdb works
     dumb_deploy()
     restart_database()
     restart_django() # Must be done before nginx so that port 80 is free
     restart_nginx()
+    restart_smtp()
 
 def bootstrap_database():
     assert Roledefs.role_matches('database')
@@ -247,10 +262,8 @@ def bootstrap_smtp():
 
 def install_common():
     print "install common"
-    # Need to do this first or else Grub will prompt for some bullshit.
-    # TODO: test if it works
-    put('./server/grub_preseed.cfg', 'grub_preseed.cfg')
-    sudo('debconf-set-selections grub_preseed.cfg')
+    #put('./server/grub_preseed.cfg', 'grub_preseed.cfg')
+    #sudo('debconf-set-selections grub_preseed.cfg')
     Apt.upgrade()
     sudo('echo LANG=\\"en_US.UTF-8\\" > /etc/default/locale')
     locale_env = [
@@ -270,15 +283,15 @@ def install_common():
     setup_permissions('/project')
     log_dir = os.path.join(PROJECT_DIR, 'log')
     sudo('chmod g+s %s' % log_dir)
-    install_private_key()
+    install_keys()
 
-def install_private_key():
+def install_keys():
     run('mkdir -p ~/.ssh')
-    put('./server/id_rsa', '~/.ssh/id_rsa')
-    put('./server/id_rsa.pub', '~/.ssh/id_rsa.pub')
-    run('chmod 600 ~/.ssh/id_rsa')
-    # So we can git clone from git@github.com w/o manual setup
-    put('./server/known_hosts', '~/.ssh/known_hosts')
+    put('./server/id_rsa', home_dir('.ssh/id_rsa'))
+    put('./server/id_rsa.pub', home_dir('.ssh/id_rsa.pub'))
+    run('chmod 600 %s' % home_dir('.ssh/id_rsa'))
+    # So we can git clone from git@github.com w/o manual confirmation
+    put('./server/known_hosts', home_dir('.ssh/known_hosts'))
 
 def install_nginx():
     assert Roledefs.role_matches('nginx')
@@ -302,13 +315,12 @@ def install_processor():
 def install_django():
     assert Roledefs.role_matches('django')
     Pip.install_virtualenv()
-    env_dir = get_env_dir()
-    if not exists(env_dir):
+    if not exists(VIRTUALENV):
         # TODO: may not install virtualenv if it failed earlier.
         # better test than exists?
-        sudo('mkdir -p %s' % env_dir)
-        sudo('virtualenv %s' % env_dir)
-    setup_permissions(env_dir)
+        sudo('mkdir -p %s' % VIRTUALENV)
+        sudo('virtualenv %s' % VIRTUALENV)
+    setup_permissions(VIRTUALENV)
     Pip.install_requirements()
     Apt.install('apache2', 'postgresql-client', 'libapache2-mod-wsgi')
     if exists('/etc/apache2/sites-enabled/000-default'):
@@ -316,7 +328,8 @@ def install_django():
     sudo('usermod -G %s -a www-data' % SERVER_GROUP)
 
 def install_smtp():
-    # TODO: *render* this instead for hostname:
+    # this is really configuration, but it has to happen before installing
+    # the package or else it will prompt for configuration
     put('./server/postfix_preseed.cfg', 'postfix_preseed.cfg')
     sudo('debconf-set-selections postfix_preseed.cfg')
     Apt.install('postfix')
@@ -324,17 +337,11 @@ def install_smtp():
 
 def install_database():
     assert Roledefs.role_matches('database')
-    # NB: If EC2, make sure device is mounted. See AWS_NOTES.
-    #raw_input('If this is the EC2 server, make sure EBS drive is mounted before continuing. Press enter to continue.')
+    # This uses whatever the default encoding and locale get set to on your system.
+    # For me, this started being UTF-8 and and en_US.UTF8 by default, which is what 
+    # I want. If you want something different, you might need to drop and recreate
+    # your cluster.
     Apt.install('postgresql')
-    sudo('mkdir -p /datastore')
-    # Drop default cluster if it exists
-    # TODO: use pg_lsclusters instead of [ -d ..]
-    sudo('if [ -d /etc/postgresql/8.4/main ]; then pg_dropcluster --stop 8.4 main; fi')
-    # Note: PROJECT_NAME is coupled with config files' destination
-    # Dir /datastore/pgdb is coupled with generated postgresql.conf, so update our customized one if you change that.
-    sudo('if [ ! -d /datastore/pgdb ]; then pg_createcluster -p 5432 --encoding=UTF8 --locale=en_US.UTF8 -d /datastore/pgdb --start 8.4 %s; fi' % PROJECT_NAME)
-    # Ensure it's started in case this wasn't the first install:
     restart_database()
 
 def sudo_put(local_file, remote_file, new_owner='root'):
@@ -370,6 +377,11 @@ def configure_django():
     if not exists('/etc/apache2/sites-enabled/%s' % PROJECT_NAME):
         sudo('ln -s /etc/apache2/sites-available/%s /etc/apache2/sites-enabled/%s' % (PROJECT_NAME, PROJECT_NAME))
 
+def configure_smtp():
+    main_cf = '/etc/postfix/main.cf'
+    comment(main_cf, "^inet_interfaces = all$", use_sudo=True)
+    append(main_cf, "inet_interfaces = loopback-only", use_sudo=True)
+
 def run_with_safe_error(cmd, safe_error, use_sudo=False, user=None):
     # Todo: use _run_command in 1.0
     if user:
@@ -394,7 +406,7 @@ def run_with_safe_error(cmd, safe_error, use_sudo=False, user=None):
 
 def configure_database():
     assert Roledefs.role_matches('database')
-    config_dir = '/etc/postgresql/8.4/%s' % PROJECT_NAME
+    config_dir = '/etc/postgresql/8.4/main'
     sudo('mkdir -p %s' % config_dir)
     for filename in ['environment', 'pg_ctl.conf', 'pg_hba.conf', 'pg_ident.conf', 'postgresql.conf', 'start.conf']:
         sudo_put(os.path.join('./server/database', filename), os.path.join(config_dir, filename), new_owner='postgres')
@@ -439,6 +451,7 @@ class Deploy(object):
     @staticmethod
     @deploy_related
     def get_release_name():
+        # XXX GCC BROKEN HERE
         return Deploy.get_time_str() + '_' + Deploy.get_current_commit()
 
     @staticmethod
@@ -477,13 +490,10 @@ class Deploy(object):
         assert name
         release_dir = Deploy.get_release_dir(name)
         django_dir = os.path.join(release_dir, PROJECT_NAME)
-        # Don't need any processing yet -- commented out:
+        # If you run a preprocessor, like JS/CSS compilation, do that here:
         #if Roledefs.role_matches('nginx'):
-        #    if int(os.environ.get('FBC_DEBUG', 0)):
-        #        raw_input("Warning: you are deploying a debug release. This might break things. Press any key to continue.")
-        #    else:
-        #        # Processing of static files
-        #        run(os.path.join(PROJECT_DIR, 'bin', 'processor') + ' ' + release_dir)
+        #   # Processing of static files
+        #   run(os.path.join(PROJECT_DIR, 'bin', 'processor') + ' ' + release_dir)
         if Roledefs.role_matches('django'):
             print 'Setting up Django settings symlinks'
             with cd(django_dir):
@@ -491,15 +501,16 @@ class Deploy(object):
                 run('ln -nfs %s .' % os.path.join(PROJECT_DIR, 'localsettings.py'))
 
         if Roledefs.role_matches('database'):
-            # OPTIONAL: run a backup script
+            # OPTIONAL: run a database backup script
             pass
 
         if Roledefs.role_matches('django'):
             print 'Doing Django database updates'
             with cd(django_dir):
-                run('source /envs/default/bin/activate && python manage.py syncdb --noinput')
-                run('source /envs/default/bin/activate && python manage.py migrate --noinput')
-                run('source /envs/default/bin/activate && python manage.py loaddata initial_data')
+                with_ve =  'source ' + os.path.join(VIRTUALENV, 'bin', 'activate') + ' && '
+                run(with_ve + 'python manage.py syncdb --noinput')
+                run(with_ve + 'python manage.py migrate --noinput')
+                run(with_ve + 'python manage.py loaddata initial_data')
 
         print 'Installing crontab'
         crontab_path = os.path.join(release_dir, 'server/crontab')
@@ -570,6 +581,9 @@ def restart_django():
 
 def restart_database():
     sudo('/etc/init.d/postgresql-8.4 restart || /etc/init.d/postgresql-8.4 start')
+
+def restart_smtp():
+    sudo('/etc/init.d/postfix restart')
 
 def down_for_maintenance():
     assert Roledefs.role_matches('nginx')
