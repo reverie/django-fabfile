@@ -7,8 +7,6 @@ from fabric.api import *
 from fabric.contrib.files import append, exists, comment
 from fabric.contrib.files import upload_template as orig_upload_template
 
-# TODO: better way to support roles/roledefs -- patch fabric??
-
 # Stuff you're likely to change
 PROJECT_NAME = 'foobar'
 DOMAIN = 'foobar.com'
@@ -71,106 +69,25 @@ def home_dir(*args):
 #
 
 def stage_dev():
-    env.NUM_UPDATERS = 1
     env.user = os.getenv('USER')
     env.stage = {
-            'hostname': 'dev.' + DOMAIN
-        }
-    env.my_roledefs = dict(
-        zip(
-            ROLES, 
-            itertools.repeat([(env.stage['hostname'], '127.0.0.1')])
-        )
-    )
+        'hostname': 'dev.' + DOMAIN
+    }
     env.hosts = [env.stage['hostname']]
 
 def stage_staging():
-    env.NUM_UPDATERS = 1
     env.user = PRODUCTION_USERNAME
     env.stage = {
-            'hostname': 'staging.' + DOMAIN
-        }
-    env.my_roledefs = dict(
-        zip(
-            ROLES, 
-            itertools.repeat([(env.stage['hostname'], '127.0.0.1')])
-        )
-    )
+        'hostname': 'staging.' + DOMAIN
+    }
     env.hosts = [env.stage['hostname']]
 
 def stage_production():
-    # We don't use the built-in roledefs, because we want more control
-    env.NUM_UPDATERS = 4
     env.user = PRODUCTION_USERNAME
     env.stage = {
-            'hostname': 'www.' + DOMAIN
-        }
-    env.my_roledefs = dict(
-        zip(
-            ROLES, 
-            itertools.repeat([(PRODUCTION_IP, '127.0.0.1')])
-        )
-    )
+        'hostname': 'www.' + DOMAIN
+    }
     env.hosts = [PRODUCTION_IP]
-    assert set(env.my_roledefs.keys()) == set(ROLES)
-
-    # This assumption is used in the Django config:
-    assert len(env.my_roledefs['database']) == 1
-
-    # This assumption is used in the nginx config:
-    assert len(env.my_roledefs['django']) == 1
-
-
-#
-# Host selection
-#
-
-def all_hosts():
-    """Call this after the stage to set hosts to all hosts in that stage."""
-    hosts = set()
-    for role in ROLES:
-        for external, internal in env.my_roledefs[role]:
-            hosts.add(external)
-    env.hosts = list(hosts) # Fabric tries to add
-
-def hosts_in_role(role):
-    env.hosts = Roledefs.get_external_hostnames(role)
-
-class Roledefs(object):
-    @staticmethod
-    def get_external_hostnames(role):
-        return [x[0] for x in env.my_roledefs[role]]
-
-    @staticmethod
-    def get_internal_ips(role):
-        return [x[1] for x in env.my_roledefs[role]]
-
-    @staticmethod
-    def get_internal_ip(role):
-        host_pairs = env.my_roledefs[role]
-        assert len(host_pairs) == 1
-        return host_pairs[0][1]
-
-    @staticmethod
-    def get_roles():
-        """List of roles that we are currently processing."""
-        roles = set()
-        for role in ROLES:
-            if env.host in Roledefs.get_external_hostnames(role):
-                roles.add(role)
-        assert roles
-        return roles
-
-    @staticmethod
-    def role_matches(*args):
-        """Check if the current host matches any of the roles in *args."""
-        roles = Roledefs.get_roles()
-        for role in args:
-            assert role in ROLES, "Unknown role %s passed to role_matches" % (role)
-            if role in roles:
-                return True
-        return False
-
 
 #
 # Tasks
@@ -233,14 +150,12 @@ def bootstrap_everything():
     restart_smtp()
 
 def bootstrap_database():
-    assert Roledefs.role_matches('database')
     install_common()
     install_database()
     configure_database()
     restart_database()
 
 def bootstrap_nginx():
-    assert Roledefs.role_matches('nginx')
     install_common()
     install_nginx()
     configure_nginx()
@@ -248,7 +163,6 @@ def bootstrap_nginx():
     restart_nginx()
 
 def bootstrap_django():
-    assert Roledefs.role_matches('django')
     install_common()
     install_django()
     configure_django()
@@ -256,7 +170,6 @@ def bootstrap_django():
     restart_django()
 
 def bootstrap_smtp():
-    assert Roledefs.role_matches('smtp')
     install_common()
     install_smtp()
 
@@ -294,7 +207,6 @@ def install_keys():
     put('./server/known_hosts', home_dir('.ssh/known_hosts'))
 
 def install_nginx():
-    assert Roledefs.role_matches('nginx')
     Apt.install('nginx')
     assert exists('/etc/nginx/sites-enabled') # Right package install format?
     if exists('/etc/nginx/sites-enabled/default'):
@@ -307,13 +219,11 @@ def install_processor():
     Separate function from install_nginx so it's easier to update 
     server-side code.
     """
-    assert Roledefs.role_matches('nginx')
     return
     #put('./server/processor/compiler.jar', os.path.join(PROJECT_DIR, 'bin', 'compiler.jar'))
     #put('./server/processor/processor', os.path.join(PROJECT_DIR, 'bin', 'processor'))
 
 def install_django():
-    assert Roledefs.role_matches('django')
     Pip.install_virtualenv()
     if not exists(VIRTUALENV):
         # TODO: may not install virtualenv if it failed earlier.
@@ -336,7 +246,6 @@ def install_smtp():
     run('rm postfix_preseed.cfg')
 
 def install_database():
-    assert Roledefs.role_matches('database')
     # This uses whatever the default encoding and locale get set to on your system.
     # For me, this started being UTF-8 and and en_US.UTF8 by default, which is what 
     # I want. If you want something different, you might need to drop and recreate
@@ -351,18 +260,16 @@ def sudo_put(local_file, remote_file, new_owner='root'):
     sudo('chown %s:%s %s' % (new_owner, new_owner, remote_file))
 
 def configure_nginx():
-    assert Roledefs.role_matches('nginx')
     sudo_put('./server/nginx/nginx.conf', '/etc/nginx/nginx.conf')
     upload_template('./server/nginx/%s' % PROJECT_NAME, '/etc/nginx/sites-available/%s' % PROJECT_NAME, use_sudo=True, use_jinja=True, context={
         'hostname': env.stage['hostname'],
-        'django_host': Roledefs.get_internal_ip('django'),
+        'django_host': '127.0.0.1', # Change this on switch to a multi-server setup
         'DJANGO_PORT': DJANGO_PORT,
     })
     if not exists('/etc/nginx/sites-enabled/%s' % PROJECT_NAME):
         sudo('ln -s /etc/nginx/sites-available/%s /etc/nginx/sites-enabled/%s' % (PROJECT_NAME, PROJECT_NAME))
 
 def configure_django():
-    assert Roledefs.role_matches('django')
     put('./server/django/wsgi.py', os.path.join(PROJECT_DIR, 'wsgi.py'))
     upload_template('./server/django/vhost', '/etc/apache2/sites-available/%s' % PROJECT_NAME, use_sudo=True, use_jinja=True, context={
         'DJANGO_PORT': DJANGO_PORT,
@@ -372,7 +279,7 @@ def configure_django():
     })
     upload_template('./server/django/stagesettings.py', os.path.join(PROJECT_DIR, 'stagesettings.py'), use_sudo=True, 
         use_jinja=True, context={
-        'database_host': Roledefs.get_internal_ip('database'),
+        'database_host': '127.0.0.1', # Change this on swtich to a multi-server setup
     })
     if not exists('/etc/apache2/sites-enabled/%s' % PROJECT_NAME):
         sudo('ln -s /etc/apache2/sites-available/%s /etc/apache2/sites-enabled/%s' % (PROJECT_NAME, PROJECT_NAME))
@@ -405,7 +312,6 @@ def run_with_safe_error(cmd, safe_error, use_sudo=False, user=None):
             )
 
 def configure_database():
-    assert Roledefs.role_matches('database')
     config_dir = '/etc/postgresql/8.4/main'
     sudo('mkdir -p %s' % config_dir)
     for filename in ['environment', 'pg_ctl.conf', 'pg_hba.conf', 'pg_ident.conf', 'postgresql.conf', 'start.conf']:
@@ -425,37 +331,24 @@ def make_symlink_atomically(new_target, symlink_location, sudo=False):
     cmd = "ln -s %(new_target)s %(tempname)s && mv -Tf %(tempname)s %(symlink_location)s" % params
     runner(cmd)
 
-def deploy_related(f):
-    @wraps(f)
-    def new_task(*args, **kwargs):
-        if not Roledefs.role_matches('nginx', 'django'):
-            print "Skipping %s on this server." % f.__name__
-            return
-        return f(*args, **kwargs)
-    return new_task
-
 class Deploy(object):
 
     run_time = time.time()
 
     @staticmethod
-    @deploy_related
     def get_current_commit():
         return local('git rev-parse --verify %s' % BRANCH).strip()
 
     @staticmethod
-    @deploy_related
     def get_time_str():
         return time.strftime('%Y-%m-%d-%H-%M-%S', time.localtime(Deploy.run_time))
 
     @staticmethod
-    @deploy_related
     def get_release_name():
         # XXX GCC BROKEN HERE
         return Deploy.get_time_str() + '_' + Deploy.get_current_commit()
 
     @staticmethod
-    @deploy_related
     def switch_symlink(name):
         assert name
         new_target = os.path.join(PROJECT_DIR, 'releases', name)
@@ -463,13 +356,11 @@ class Deploy(object):
         make_symlink_atomically(new_target, symlink_location)
 
     @staticmethod
-    @deploy_related
     def get_release_dir(name):
         assert name
         return os.path.join(PROJECT_DIR, 'releases', name)
  
     @staticmethod
-    @deploy_related
     def upload_new_release():
         name = Deploy.get_release_name()
         release_dir = Deploy.get_release_dir(name)
@@ -484,33 +375,24 @@ class Deploy(object):
         return name
 
     @staticmethod
-    @deploy_related
     def prep_release(name):
         """Prepares all the files in the release dir."""
         assert name
         release_dir = Deploy.get_release_dir(name)
         django_dir = os.path.join(release_dir, PROJECT_NAME)
-        # If you run a preprocessor, like JS/CSS compilation, do that here:
-        #if Roledefs.role_matches('nginx'):
-        #   # Processing of static files
-        #   run(os.path.join(PROJECT_DIR, 'bin', 'processor') + ' ' + release_dir)
-        if Roledefs.role_matches('django'):
-            print 'Setting up Django settings symlinks'
-            with cd(django_dir):
-                run('ln -nfs %s .' % os.path.join(PROJECT_DIR, 'stagesettings.py'))
-                run('ln -nfs %s .' % os.path.join(PROJECT_DIR, 'localsettings.py'))
+        # If you run a preprocessor, like JS/CSS compilation, do that here, e.g. :
+        #run(os.path.join(PROJECT_DIR, 'bin', 'processor') + ' ' + release_dir)
+        print 'Setting up Django settings symlinks'
+        with cd(django_dir):
+            run('ln -nfs %s .' % os.path.join(PROJECT_DIR, 'stagesettings.py'))
+            run('ln -nfs %s .' % os.path.join(PROJECT_DIR, 'localsettings.py'))
 
-        if Roledefs.role_matches('database'):
-            # OPTIONAL: run a database backup script
-            pass
-
-        if Roledefs.role_matches('django'):
-            print 'Doing Django database updates'
-            with cd(django_dir):
-                with_ve =  'source ' + os.path.join(VIRTUALENV, 'bin', 'activate') + ' && '
-                run(with_ve + 'python manage.py syncdb --noinput')
-                run(with_ve + 'python manage.py migrate --noinput')
-                run(with_ve + 'python manage.py loaddata initial_data')
+        print 'Doing Django database updates'
+        with cd(django_dir):
+            with_ve =  'source ' + os.path.join(VIRTUALENV, 'bin', 'activate') + ' && '
+            run(with_ve + 'python manage.py syncdb --noinput')
+            run(with_ve + 'python manage.py migrate --noinput')
+            run(with_ve + 'python manage.py loaddata initial_data')
 
         print 'Installing crontab'
         crontab_path = os.path.join(release_dir, 'server/crontab')
@@ -519,14 +401,12 @@ class Deploy(object):
         run('crontab - < %s' % crontab_path)
 
     @staticmethod
-    @deploy_related
     def cleanup_release(name):
         pkg_filename = "%s.tar.gz" % name
         if os.path.exists(pkg_filename):
             local('rm %s' % pkg_filename)
 
 
-@deploy_related
 def list_releases():
     with cd(os.path.join(PROJECT_DIR, 'releases')):
         run('''ls -ltc | grep -v total | awk '{print $6 " " $7 " " $8}' | head -n 10''')
@@ -561,8 +441,7 @@ def dumb_deploy():
     restart_after_deploy()
 
 def restart_after_deploy():
-    if Roledefs.role_matches('django'):
-        restart_django()
+    restart_django()
 
 def reload_nginx():
     sudo('initctl reload nginx')
@@ -586,13 +465,11 @@ def restart_smtp():
     sudo('/etc/init.d/postfix restart')
 
 def down_for_maintenance():
-    assert Roledefs.role_matches('nginx')
     with cd(os.path.join(PROJECT_DIR, 'current', 'static')):
         run('cp index.html index.html.bak')
         run('cp down.html index.html')
 
 def comingsoon():
-    assert Roledefs.role_matches('nginx')
     with cd(os.path.join(PROJECT_DIR, 'current', 'static')):
         run('cp index.html index.html.bak')
         run('cp comingsoon.html index.html')
