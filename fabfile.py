@@ -211,17 +211,13 @@ def install_nginx():
     assert exists('/etc/nginx/sites-enabled') # Right package install format?
     if exists('/etc/nginx/sites-enabled/default'):
         sudo('rm /etc/nginx/sites-enabled/default')
-    install_processor()
 
-def install_processor():
-    """
-    Stuff to compile javascript (and other file processing later?). 
-    Separate function from install_nginx so it's easier to update 
-    server-side code.
-    """
-    return
-    #put('./server/processor/compiler.jar', os.path.join(PROJECT_DIR, 'bin', 'compiler.jar'))
-    #put('./server/processor/processor', os.path.join(PROJECT_DIR, 'bin', 'processor'))
+#def install_processor():
+#    """
+#    Stuff to compile javascript
+#    """
+#    put('./server/processor/compiler.jar', os.path.join(PROJECT_DIR, 'bin', 'compiler.jar'))
+#    put('./server/processor/processor', os.path.join(PROJECT_DIR, 'bin', 'processor'))
 
 def install_django():
     Pip.install_virtualenv()

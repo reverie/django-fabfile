@@ -1,105 +1,17 @@
 #!/usr/bin/env python
-import codecs
-import glob
-import os
-import re
-import subprocess
 import sys
-
-PAGES_TO_PROCESS = ['index.html']
 
 def usage():
     print "Usage: %s <release_dir>" % (sys.argv[0])
     sys.exit(1)
-
-def remove_console_log(path):
-    subprocess.check_call(['sed', '-i.bak', '-r', r's/^\s*console\.log.*//', path])
-
-def update_page_and_collect_js(filename, release_tag):
-    contents = codecs.open(filename, 'r', 'utf8').read()
-    # Easier to do these validations with read vs readlines:
-    #assert contents.count('global.css') == 1
-    assert contents.count('START_SCRIPTS') == 1
-    assert contents.count('END_SCRIPTS') == 1
-    lines = contents.split('\n')
-    result_lines = []
-    files_to_compile = []
-    in_script_replace_block = False
-    for l in lines:
-        if 'global.css' in l:
-            l = l.replace('global.css', 'global.css?v=%s' % release_tag)
-        if 'START_SCRIPTS' in l:
-            in_script_replace_block = True
-        if in_script_replace_block:
-            if '<script' in l:
-                js_file_path = re.search(r'src="([\w\/\.-]*)">', l).groups()[0]
-                # Make relative:
-                assert js_file_path[0] == '/'
-                js_file_path = js_file_path[1:]
-                #parts = filter(None, js_file_path.split(os.path.sep))
-                #parts = parts[1:]
-                #js_file_path = os.path.sep.join(parts)
-                files_to_compile.append(js_file_path)
-            elif 'END_SCRIPTS' in l:
-                result_lines.append('<script type="text/javascript" src="/%s.js?v=%s"></script>' % (filename, release_tag))
-                in_script_replace_block = False
-            continue
-        result_lines.append(l)
-    result = codecs.open(filename, 'w', 'utf8')
-    result.write('\n'.join(result_lines))
-    result.close()
-    return files_to_compile
 
 def main():
     # Validation and testing assumptions:
     if len(sys.argv) != 2:
         usage()
     release_dir = sys.argv[1]
-    assert re.match('^/project/foobar/releases/\w+$', release_dir)
-    assert os.path.exists(release_dir)
-    static_dir = os.path.join(release_dir, 'static')
-    assert os.path.exists(static_dir)
-    for p in PAGES_TO_PROCESS:
-        assert os.path.exists(os.path.join(static_dir, p))
-    #index_html = os.path.join(static_dir, 'index.html')
-    #assert os.path.exists(index_html)
-    #js_dir = os.path.join(static_dir, 'js')
-    #assert os.path.exists(js_dir)
-    #fbc_js_dir = os.path.join(js_dir, 'fbc')
-    #assert os.path.exists(fbc_js_dir)
-    release_tag = release_dir.split('/')[-1]
-    assert re.match('^\w+$', release_tag)
-
-    os.chdir(static_dir)
-    done = set()
-    for filename in PAGES_TO_PROCESS:
-        filepath = os.path.join(static_dir, filename)
-        files_to_compile = update_page_and_collect_js(filename, release_tag)
-        for f in files_to_compile:
-            remove_console_log(f)
-        command = [
-            'java', '-jar', '/project/foobar/bin/compiler.jar', 
-            '--compilation_level', 'SIMPLE_OPTIMIZATIONS',
-        ]
-        # 3. Compile
-        # TODO: add header noting copyright (jquery, jq.cookie, mine)?
-        for f in files_to_compile:
-            command.extend(['--js', f])
-        command.extend(['--js_output_file', os.path.join(static_dir, '%s.js' % filename)])
-        subprocess.check_call(command)
-        done.add(filename)
-
-    # Processing:
-    # 1. Remove console.log statements
-    #remove_console_log(os.path.join(js_dir, 'global.js'))
-    #fbc_js = glob.glob(os.path.join(fbc_js_dir, '*.js'))
-    #assert fbc_js
-    #for f in fbc_js:
-    #    remove_console_log(f)
-
-    # 2. Modify index.html and collect JS files to compile
-    #files_to_compile = update_index_and_collect_js(index_html, release_tag)
-    
+    # Put your own here...
+    return 
 
 if __name__ == '__main__':
     main()
