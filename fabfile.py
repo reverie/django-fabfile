@@ -253,14 +253,8 @@ def install_database():
     Apt.install('postgresql')
     restart_database()
 
-def sudo_put(local_file, remote_file, new_owner='root'):
-    # TODO: make sure remote_file isn't the containing dir for the new file
-    put(local_file, 'tmp')
-    sudo('mv tmp %s' % remote_file)
-    sudo('chown %s:%s %s' % (new_owner, new_owner, remote_file))
-
 def configure_nginx():
-    sudo_put('./server/nginx/nginx.conf', '/etc/nginx/nginx.conf')
+    put('./server/nginx/nginx.conf', '/etc/nginx/nginx.conf', use_sudo=True)
     upload_template('./server/nginx/%s' % PROJECT_NAME, '/etc/nginx/sites-available/%s' % PROJECT_NAME, use_sudo=True, use_jinja=True, context={
         'hostname': env.stage['hostname'],
         'django_host': '127.0.0.1', # Change this on switch to a multi-server setup
@@ -315,7 +309,10 @@ def configure_database():
     config_dir = '/etc/postgresql/8.4/main'
     sudo('mkdir -p %s' % config_dir)
     for filename in ['environment', 'pg_ctl.conf', 'pg_hba.conf', 'pg_ident.conf', 'postgresql.conf', 'start.conf']:
-        sudo_put(os.path.join('./server/database', filename), os.path.join(config_dir, filename), new_owner='postgres')
+        local_file = os.path.join('./server/database', filename)
+        remote_file = os.path.join(config_dir, filename)
+        put(local_file, remote_file, use_sudo=True)
+        sudo('chown %s:%s %s' % ('postgres', 'postgres', remote_file))
     run_with_safe_error("createdb %s" % PROJECT_NAME, 'some dumb error', use_sudo=True, user='postgres')
     run_with_safe_error("""psql -c "create user %s with createdb encrypted password '%s'" """ % (PROJECT_NAME, DB_PASS), "some dumb error", use_sudo=True, user='postgres')
     sudo("""psql -c "grant all privileges on database %s to %s" """ % (PROJECT_NAME, PROJECT_NAME), user='postgres')
