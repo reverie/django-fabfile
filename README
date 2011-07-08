@@ -14,6 +14,7 @@ Non-features:
 Currently non-configurable, but modifying the source shouldn't be too hard: 
 - Runs your site from www.yourdomain.com
 - Static files are served out of /static/
+- You're using Git and hosting at GitHub
 
 Caveats:
 - Written for Fabric <1.0, haven't fully updated it yet
