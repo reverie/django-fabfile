@@ -1,7 +1,7 @@
 from __future__ import with_statement
 from functools import wraps, partial
 import os, os.path, time
-import itertools
+import functools, itertools
 
 from fabric.api import *
 from fabric.contrib.files import append, exists, comment
@@ -24,16 +24,13 @@ PROJECT_DIR = '/project/%s' % PROJECT_NAME
 VIRTUALENV = '/envs/%s' % PROJECT_NAME
 
 #
-# Hax
+# Fabric Hacks
 #
 
-def ssudo(*args, **kwargs):
-    """Task version of sudo :|"""
-    return sudo(*args,**kwargs)
-
-def rrun(*args, **kwargs):
-    """Task version of run :|"""
-    return run(*args,**kwargs)
+# Fabric excludes `run` and `sudo` from being tasks, for no apparent reason
+# This works around that:
+run = functools.partial(run)
+sudo = functools.partial(sudo)
 
 def upload_template(src, dest, *args, **kwargs):
     """
