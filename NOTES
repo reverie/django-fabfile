@@ -3,8 +3,9 @@
  - Change settings at the top of fabfile.py
  - generate new RSA keypair, put it in the server directory, upload the public key to github as your deploy key
  - change db password in fabfile and django settings
- - change secret key in settings.py
- - Change PROJECT_NAME and DOMAIN in settings.py (todo: automate)
+ - choose secret key in settings.py
+ - change ADMINS in settings.py, unless you want me getting your tracebacks
+ - Change PROJECT_NAME and DOMAIN in settings.py
 
 Out of Band TODOs:
 - DNS

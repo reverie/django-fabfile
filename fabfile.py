@@ -15,7 +15,7 @@ from fabric.contrib.files import upload_template as orig_upload_template
 
 # Stuff you're likely to change
 PROJECT_NAME = 'project'
-DOMAIN = 'foobar.com'
+DOMAIN = 'project.com'
 GIT_REPOSITORY = 'git@github.com:reverie/foobar.git'
 PRODUCTION_USERNAME = 'root'
 PRODUCTION_IP = '66.228.59.82'

@@ -1,4 +1,6 @@
  - test removed versions in requirements.txt; add freeze to instructions if works
  - check pg_hba format, remove database password, update NOTES
  - use Fabric namespaces
+ - add separate instructions for copying in vs. new project
+ - move instructions into README
 
