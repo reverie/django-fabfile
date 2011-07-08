@@ -1,8 +1,9 @@
- - Copy your Django project into this directory (or start a new one) as
+ - Copy your Django project into this directory (or start a new one)
+ - Put static files in `static` top-level dir
  - Change settings at the top of fabfile.py
- - find . -type f | xargs perl -pi -e 's/foobar/yourproject/g'
  - generate new RSA keypair, put it in the server directory, upload the public key to github as your deploy key
-
  - change db password in fabfile and secret key in settings.py
 
-
+Out of Band TODOs:
+- DNS
+- SPF

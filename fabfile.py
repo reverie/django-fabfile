@@ -208,6 +208,9 @@ def install_common():
 
 def install_keys():
     run('mkdir -p ~/.ssh')
+    # Failing here? You need to generate a keypair and put it in the 'server' directory.
+    # The point is to use this as a GitHub (or other) 'deploy key'. Delete this stuff
+    # if you don't want that.
     put('./server/id_rsa', home_dir('.ssh/id_rsa'))
     put('./server/id_rsa.pub', home_dir('.ssh/id_rsa.pub'))
     run('chmod 600 %s' % home_dir('.ssh/id_rsa'))

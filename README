@@ -1,17 +1,21 @@
-Features:
+Features & Assumptions:
 - Fabfile for fully automated Django project installation and deploy process on an Ubuntu 10.4 server
-- Stack: nginx, Apache, Django, PostgreSQL, memcached, Postfix
-- Everything runs on a single server
+- Stack: nginx, Apache, Django, PostgreSQL, Postfix
 - Cooperates with siblings -- run multiple of these on the same server
+- All services run on a single server
 
 Non-features:
-- Sites running across multiple servers (e.g., a separate database server, or multiple web servers. This isn't hard to add to the fabfile, but I didn't want to release untested code.
-- Servers running sites other than those on this exact setup. The Fabfile overwrites nginx settings etc.
+- Sites running across multiple servers (e.g., a separate database server, or multiple web servers. This is available in a branch, but you might not like it.
+- Compatibility with servers running sites or services other than those on this exact setup. The Fabfile overwrites nginx settings etc.
 - Accepting inbound mail
 - Configuration tuned for high traffic. Set your own values in the `server` directory's various config files.
 - Running on servers other than Ubuntu 10.4
 
+Currently non-configurable, but modifying the source shouldn't be too hard: 
+- Runs your site from www.yourdomain.com
+- Static files are served out of /static/
+
 Caveats:
-- Written for Fabric <1.0, haven't updated it yet
+- Written for Fabric <1.0, haven't fully updated it yet
 - I haven't tried running this from Windows
 
