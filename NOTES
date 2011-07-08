@@ -4,7 +4,5 @@
  - change db password in fabfile and secret key in settings.py
  - change nginx config file name and doublecheck host within
  - generate new RSA keypair, put it in the server directory, upload the public key to github as your deploy key
- - double-check postfix domain in config file
-
 
 
