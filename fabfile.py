@@ -269,7 +269,9 @@ def configure_nginx():
         sudo('ln -s /etc/nginx/sites-available/%s /etc/nginx/sites-enabled/%s' % (PROJECT_NAME, PROJECT_NAME))
 
 def configure_django():
-    put('./server/django/wsgi.py', os.path.join(PROJECT_DIR, 'wsgi.py'))
+    upload_template('./server/django/wsgi.py', os.path.join(PROJECT_DIR, 'wsgi.py'), use_jinja=True, context={
+        'PROJECT_NAME': PROJECT_NAME
+    })
     upload_template('./server/django/vhost', '/etc/apache2/sites-available/%s' % PROJECT_NAME, use_sudo=True, use_jinja=True, context={
         'DJANGO_PORT': DJANGO_PORT,
         'PROJECT_NAME': PROJECT_NAME,
