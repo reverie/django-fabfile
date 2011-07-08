@@ -2,7 +2,8 @@
  - Put static files in `static` top-level dir
  - Change settings at the top of fabfile.py
  - generate new RSA keypair, put it in the server directory, upload the public key to github as your deploy key
- - change db password in fabfile and secret key in settings.py
+ - change db password in fabfile and django settings
+ - change secret key in settings.py
  - Change PROJECT_NAME and DOMAIN in settings.py (todo: automate)
 
 Out of Band TODOs:
