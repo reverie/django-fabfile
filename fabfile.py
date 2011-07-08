@@ -337,7 +337,7 @@ class Deploy(object):
 
     @staticmethod
     def get_current_commit():
-        return local('git rev-parse --verify %s' % BRANCH).strip()
+        return local('git rev-parse --verify %s' % BRANCH, capture=True).strip()
 
     @staticmethod
     def get_time_str():
@@ -345,7 +345,6 @@ class Deploy(object):
 
     @staticmethod
     def get_release_name():
-        # XXX GCC BROKEN HERE
         return Deploy.get_time_str() + '_' + Deploy.get_current_commit()
 
     @staticmethod
