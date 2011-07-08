@@ -1,0 +1,5 @@
+localsettings.py
+stagesettings.py
+*.pyc
+*.sqlite
+
