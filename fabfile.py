@@ -1,7 +1,13 @@
+"""
+Fabfile for boostrapping and deploying a
+Django/Nginx/Apache/Postgres/Postfix stack
+on Ubuntu 10.4 LTS.
+"""
+
 from __future__ import with_statement
-from functools import wraps, partial
+from functools import partial
 import os, os.path, time
-import functools, itertools
+import functools
 
 from fabric.api import *
 from fabric.contrib.files import append, exists, comment
@@ -14,14 +20,15 @@ GIT_REPOSITORY = 'git@github.com:reverie/foobar.git'
 PRODUCTION_USERNAME = 'root'
 PRODUCTION_IP = '66.228.59.82'
 DB_PASS = 'foo' # Should not contain quotes; coupled w/settings.py
+ADMIN_EMAIL = 'andrewbadr@gmail.com'
 
-# Less likely to change:
+# Probably don't change:
 DJANGO_PORT = 81
 BRANCH = 'master'
 SERVER_GROUP = 'app'
 ROLES = ['nginx', 'django', 'database', 'smtp']
-PROJECT_DIR = '/project/%s' % PROJECT_NAME
-VIRTUALENV = '/envs/%s' % PROJECT_NAME
+PROJECT_DIR = '/project/%s' % PROJECT_NAME # Not templatized in service config files
+VIRTUALENV = '/envs/%s' % PROJECT_NAME # Not templatized in service config files
 
 #
 # Fabric Hacks
@@ -250,10 +257,13 @@ def install_database():
 
 def configure_nginx():
     put('./server/nginx/nginx.conf', '/etc/nginx/nginx.conf', use_sudo=True)
-    upload_template('./server/nginx/%s' % PROJECT_NAME, '/etc/nginx/sites-available/%s' % PROJECT_NAME, use_sudo=True, use_jinja=True, context={
+    upload_template( './server/nginx/site', '/etc/nginx/sites-available/%s' % PROJECT_NAME, 
+            use_sudo=True, use_jinja=True, context={
         'hostname': env.stage['hostname'],
         'django_host': '127.0.0.1', # Change this on switch to a multi-server setup
         'DJANGO_PORT': DJANGO_PORT,
+        'DOMAIN': DOMAIN,
+        'PROJECT_NAME': PROJECT_NAME
     })
     if not exists('/etc/nginx/sites-enabled/%s' % PROJECT_NAME):
         sudo('ln -s /etc/nginx/sites-available/%s /etc/nginx/sites-enabled/%s' % (PROJECT_NAME, PROJECT_NAME))
@@ -262,6 +272,10 @@ def configure_django():
     put('./server/django/wsgi.py', os.path.join(PROJECT_DIR, 'wsgi.py'))
     upload_template('./server/django/vhost', '/etc/apache2/sites-available/%s' % PROJECT_NAME, use_sudo=True, use_jinja=True, context={
         'DJANGO_PORT': DJANGO_PORT,
+        'PROJECT_NAME': PROJECT_NAME,
+        'DOMAIN': DOMAIN, # Should we use env.stage['hostname']?
+        'ADMIN_EMAIL': ADMIN_EMAIL
+
     })
     upload_template('./server/django/ports.conf', '/etc/apache2/ports.conf', use_sudo=True, use_jinja=True, context={
         'DJANGO_PORT': DJANGO_PORT,
