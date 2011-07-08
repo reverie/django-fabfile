@@ -225,9 +225,7 @@ def install_processor():
 
 def install_django():
     Pip.install_virtualenv()
-    if not exists(VIRTUALENV):
-        # TODO: may not install virtualenv if it failed earlier.
-        # better test than exists?
+    if not exists(VIRTUALENV): # TODO: better test than `exists`?
         sudo('mkdir -p %s' % VIRTUALENV)
         sudo('virtualenv %s' % VIRTUALENV)
     setup_permissions(VIRTUALENV)
@@ -238,7 +236,7 @@ def install_django():
     sudo('usermod -G %s -a www-data' % SERVER_GROUP)
 
 def install_smtp():
-    # this is really configuration, but it has to happen before installing
+    # this next line is really configuration, but it has to happen before installing
     # the package or else it will prompt for configuration
     put('./server/postfix_preseed.cfg', 'postfix_preseed.cfg')
     sudo('debconf-set-selections postfix_preseed.cfg')
