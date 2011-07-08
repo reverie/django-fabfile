@@ -14,7 +14,7 @@ from fabric.contrib.files import append, exists, comment
 from fabric.contrib.files import upload_template as orig_upload_template
 
 # Stuff you're likely to change
-PROJECT_NAME = 'foobar'
+PROJECT_NAME = 'project'
 DOMAIN = 'foobar.com'
 GIT_REPOSITORY = 'git@github.com:reverie/foobar.git'
 PRODUCTION_USERNAME = 'root'
