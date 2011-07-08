@@ -1,4 +1,5 @@
  - test removed versions in requirements.txt; add freeze to instructions if works
  - check pg_hba format
  - remove database password, use local auth
+ - use Fabric namespaces
 

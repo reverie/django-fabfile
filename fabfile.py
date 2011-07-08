@@ -34,17 +34,20 @@ sudo = functools.partial(sudo)
 
 def upload_template(src, dest, *args, **kwargs):
     """
-    My wrapped version that sets +r.
-    # upload_template does not preserve file permissions, http://code.fabfile.org/issues/show/117
+    Wrapper around Fabric's upload_template that sets +r.
+
+    upload_template does not preserve file permissions, http://code.fabfile.org/issues/show/117
     """
     orig_upload_template(src, dest, *args, **kwargs)
     sudo('chmod +r %s' % dest)
 
 def boxed_task(name):
-    """So you can use e.g. Pip.install_requirements as a task.
+    """
+    So you can use e.g. Pip.install_requirements as a task.
    
     E.g.: 'boxed_task:Pip.install_requirements'
     """
+    # TODO: switch to fabric namespaces
     box, task = name.split('.', 1)
     box = globals()[box]
     task = getattr(box, task)
@@ -103,7 +106,6 @@ class Apt(object):
 class Pip(object):
     @staticmethod
     def install_virtualenv():
-        # Only sudo fxn here
         sudo('pip install virtualenv')
 
     @staticmethod
@@ -118,7 +120,7 @@ class Pip(object):
         run('pip install -E %s -r %s' % (VIRTUALENV, REMOTE_FILENAME))
         run('rm %s' % REMOTE_FILENAME)
 
-def setup_permissions(dirname):
+def set_up_permissions(dirname):
     sudo('chown -R %s:%s %s' % (env.user, SERVER_GROUP, dirname))
     sudo('chmod -R g+w %s' % dirname)
 
@@ -140,7 +142,7 @@ def bootstrap_everything():
     configure_database()
     configure_smtp()
     restart_database() # Must be done before deploy so that syncdb works
-    dumb_deploy()
+    simple_deploy()
     restart_database()
     restart_django() # Must be done before nginx so that port 80 is free
     restart_nginx()
@@ -172,6 +174,8 @@ def bootstrap_smtp():
 
 def install_common():
     print "install common"
+    # If you get prompted to configure grub, make a preseed file
+    # and use it next time.
     #put('./server/grub_preseed.cfg', 'grub_preseed.cfg')
     #sudo('debconf-set-selections grub_preseed.cfg')
     Apt.upgrade()
@@ -190,7 +194,7 @@ def install_common():
     adduser(SERVER_GROUP)
     for dirname in ['releases', 'packages', 'bin', 'log']:
         sudo('mkdir -p %s' % os.path.join(PROJECT_DIR, dirname))
-    setup_permissions('/project')
+    set_up_permissions('/project')
     log_dir = os.path.join(PROJECT_DIR, 'log')
     sudo('chmod g+s %s' % log_dir)
     install_keys()
@@ -200,7 +204,7 @@ def install_keys():
     put('./server/id_rsa', home_dir('.ssh/id_rsa'))
     put('./server/id_rsa.pub', home_dir('.ssh/id_rsa.pub'))
     run('chmod 600 %s' % home_dir('.ssh/id_rsa'))
-    # So we can git clone from git@github.com w/o manual confirmation
+    # So we can git clone from git@github.com w/o manual confirmation:
     put('./server/known_hosts', home_dir('.ssh/known_hosts'))
 
 def install_nginx():
@@ -221,7 +225,7 @@ def install_django():
     if not exists(VIRTUALENV): # TODO: better test than `exists`?
         sudo('mkdir -p %s' % VIRTUALENV)
         sudo('virtualenv %s' % VIRTUALENV)
-    setup_permissions(VIRTUALENV)
+    set_up_permissions(VIRTUALENV)
     Pip.install_requirements()
     Apt.install('apache2', 'postgresql-client', 'libapache2-mod-wsgi')
     if exists('/etc/apache2/sites-enabled/000-default'):
@@ -355,7 +359,7 @@ class Deploy(object):
             assert release_dir.startswith(os.path.join(PROJECT_DIR, 'releases'))
             run('rm -rf %s' % release_dir)
         run('git clone %s %s' % (GIT_REPOSITORY, release_dir))
-        setup_permissions(release_dir)
+        set_up_permissions(release_dir)
         current_commit = Deploy.get_current_commit()
         with cd(release_dir):
             run('git reset --hard %s' % current_commit)
@@ -399,7 +403,9 @@ def list_releases():
         run('''ls -ltc | grep -v total | awk '{print $6 " " $7 " " $8}' | head -n 10''')
         run('ls -l %s | cut -d " " -f "10"' % os.path.join(PROJECT_DIR, CURRENT_RELEASE_DIR))
 
-prep_release = Deploy.prep_release
+# Two-step Deploy; use this for HA multi-server setup:
+# 1. deploy_prep_new_release
+# 2. deploy_activate_release:<release_name>
 
 def deploy_prep_new_release():
     local('git push')
@@ -416,19 +422,26 @@ def deploy_activate_release(release_name):
     restart_after_deploy()
     Deploy.cleanup_release(release_name)
 
+# One-step Deploy; use this for one-server setup or if lazy
+# 1. simple_deploy
+
 def deploy():
     release_name = Deploy.upload_new_release()
     Deploy.prep_release(release_name)
     Deploy.switch_symlink(release_name)
     Deploy.cleanup_release(release_name)
 
-def dumb_deploy():
+def restart_after_deploy():
+    restart_django()
+
+def simple_deploy():
     local('git push')
     deploy()
     restart_after_deploy()
 
-def restart_after_deploy():
-    restart_django()
+# 
+# Service control
+# 
 
 def reload_nginx():
     sudo('initctl reload nginx')
@@ -450,14 +463,3 @@ def restart_database():
 
 def restart_smtp():
     sudo('/etc/init.d/postfix restart')
-
-def down_for_maintenance():
-    with cd(os.path.join(PROJECT_DIR, 'current', 'static')):
-        run('cp index.html index.html.bak')
-        run('cp down.html index.html')
-
-def comingsoon():
-    with cd(os.path.join(PROJECT_DIR, 'current', 'static')):
-        run('cp index.html index.html.bak')
-        run('cp comingsoon.html index.html')
-
