@@ -18,9 +18,9 @@ PROJECT_NAME = 'project'
 DOMAIN = 'project.com'
 GIT_REPOSITORY = 'git@github.com:reverie/foobar.git'
 PRODUCTION_USERNAME = 'root'
-PRODUCTION_IP = '66.228.59.82'
+PRODUCTION_HOST = '66.228.59.82'
 DB_PASS = 'foo' # Should not contain quotes; coupled w/settings.py
-ADMIN_EMAIL = 'andrewbadr@gmail.com'
+ADMIN_EMAIL = 'andrewbadr+django_fabfile@gmail.com'
 
 # Probably don't change:
 DJANGO_PORT = 81
@@ -94,7 +94,7 @@ def stage_production():
     env.stage = {
         'hostname': 'www.' + DOMAIN
     }
-    env.hosts = [PRODUCTION_IP]
+    env.hosts = [PRODUCTION_HOST]
 
 #
 # Tasks
