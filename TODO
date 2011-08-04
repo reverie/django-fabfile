@@ -1,3 +1,5 @@
- - test removed versions in requirements.txt; add freeze to instructions if works
- - check pg_hba format, remove database password, update NOTES
  - use Fabric namespaces
+
+ - Fix ADMIN_MEDIA_PREFIX. Having it set to '/media/' breaks the admin in development. But fix the nginx path or whatever for production.
+
+ - Fix run_with_safe_error

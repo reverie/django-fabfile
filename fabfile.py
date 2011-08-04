@@ -325,7 +325,9 @@ def configure_database():
     for filename in ['environment', 'pg_ctl.conf', 'pg_hba.conf', 'pg_ident.conf', 'postgresql.conf', 'start.conf']:
         local_file = os.path.join('./server/database', filename)
         remote_file = os.path.join(config_dir, filename)
-        put(local_file, remote_file, use_sudo=True)
+        upload_template( local_file, remote_file, use_sudo=True, use_jinja=True, context={
+            'PROJECT_NAME': PROJECT_NAME
+        })
         sudo('chown %s:%s %s' % ('postgres', 'postgres', remote_file))
     run_with_safe_error("createdb %s" % PROJECT_NAME, 'some dumb error', use_sudo=True, user='postgres')
     run_with_safe_error("""psql -c "create user %s with createdb encrypted password '%s'" """ % (PROJECT_NAME, DB_PASS), "some dumb error", use_sudo=True, user='postgres')
