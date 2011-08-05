@@ -194,7 +194,8 @@ def install_common():
     append(locale_env, '/etc/environment', use_sudo=True)
     Apt.install('python-setuptools', 'python-pycurl', 'vim', 'screen', 'language-pack-en', 'git-core',
             'subversion', 'cron', 'curl', 'man', 'build-essential', 'python-dev', 'libpq-dev',
-            'python-psycopg2', 'libcurl4-gnutls-dev', 'debconf-utils', 'ntp'
+            'python-psycopg2', 'libcurl4-gnutls-dev', 'debconf-utils', 'ntp',
+            'memcached', 'python-memcache', # TODO: use a different memcached client
             )
     sudo('easy_install -U setuptools')
     sudo('easy_install pip')
@@ -405,6 +406,8 @@ class Deploy(object):
             run(with_ve + 'python manage.py syncdb --noinput')
             run(with_ve + 'python manage.py migrate --noinput')
             run(with_ve + 'python manage.py loaddata initial_data')
+            run(with_ve + 'python manage.py collectstatic --noinput')
+            
 
         print 'Installing crontab'
         crontab_path = os.path.join(release_dir, 'server/crontab')
