@@ -33,9 +33,9 @@ It comes bundled with a default Django project that includes a few tweaks I usua
  1. Move 'project' to your new project name. This is PROJECT_NAME for the steps below.
  2. Change the "Stuff you're likely to change" settings at the top of fabfile.py
  3. In yourproject/settings.py:
-    a. Change the PROJECT_NAME and DOMAIN at the top of settings.py to match fabfile.py
-    b. Modify the SECRET_KEY='' line to use a random key (see comment there for help)
-    c. Change the ADMINS setting (unless you want me getting your tracebacks)
+    - Change the PROJECT_NAME and DOMAIN at the top of settings.py to match fabfile.py
+    - Modify the SECRET_KEY='' line to use a random key (see comment there for help)
+    - Change the ADMINS setting (unless you want me getting your tracebacks)
  4. Generate a keypair using ssh-keygen and put it in the server directory.
     Upload the public key to GitHub as your project's "Deploy Key".
  5. Consider doing a `pip freeze` on your server and updating server/requirements.txt with version requirements.
@@ -52,7 +52,7 @@ It comes bundled with a default Django project that includes a few tweaks I usua
 - SPF records (optional)
 - authorized_keys on server (optional)
 
-## Usage ## 
+## Usage ##
  - To bring the server up for the first time, "fab stage_production bootstrap_everything"
  - To deploy a new version, "fab stage_production simple_deploy"
 
