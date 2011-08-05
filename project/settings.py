@@ -37,13 +37,12 @@ MEDIA_ROOT = ''
 
 MEDIA_URL = ''
 
-STATIC_ROOT = ''
+STATIC_ROOT = root_dir('..', 'static')
 
 STATIC_URL = '/static/'
 
-ADMIN_MEDIA_PREFIX = '/media/'
-
 STATICFILES_DIRS = (
+    root_dir('static')
 )
 
 STATICFILES_FINDERS = (
