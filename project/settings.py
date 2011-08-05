@@ -56,7 +56,7 @@ STATICFILES_FINDERS = (
 from random import choice
 print ''.join([choice('abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)') for i in range(50)])
 """
-SECRET_KEY = 'foo'
+SECRET_KEY = ''
 assert SECRET_KEY, "Please generate a new SECRET_KEY in settings.py"
 
 TEMPLATE_LOADERS = (

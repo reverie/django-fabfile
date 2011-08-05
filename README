@@ -37,8 +37,8 @@ It comes bundled with a default Django project that includes a few tweaks I usua
     b. Modify the SECRET_KEY='' line to use a random key (see comment there for help)
     c. Set the same database password as in fabfile.py
     d. Change the ADMINS setting (unless you want me getting your tracebacks)
- 4. If you want to deploy from GitHub, generate a keypair using ssh-keygen and put it in the server directory
-    (Otherwise, remove the lines referencing id_rsa from the fabfile.)
+ 4. Generate a keypair using ssh-keygen and put it in the server directory.
+    Upload the public key to GitHub as your project's "Deploy Key".
  5. Consider doing a `pip freeze` on your server and updating server/requirements.txt with version requirements.
 
 = If you're converting an existing Django project =
@@ -47,9 +47,11 @@ It comes bundled with a default Django project that includes a few tweaks I usua
     static url prefix, consider submitting a patch to make it a configuration setting.
 
 = Out of band project setup =
+- GitHub project hosting
 - Server provisioning
-- DNS
-- SPF
+- DNS records
+- SPF records (optional)
+- authorized_keys on server (optional)
 
 == Usage == 
  - To bring the server up for the first time, "fab stage_production bootstrap_everything"
