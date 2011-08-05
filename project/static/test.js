@@ -1,1 +1,1 @@
-document.write("Static files are being served correctly.");
+document.write("Yes, they are.");
