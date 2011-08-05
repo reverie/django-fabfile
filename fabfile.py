@@ -191,7 +191,7 @@ def install_common():
         'LANGUAGE="en_US.utf8"',
         'LANG="en_US.utf8"'
     ]
-    append(locale_env, '/etc/environment', use_sudo=True)
+    append('/etc/environment', locale_env, use_sudo=True)
     Apt.install('python-setuptools', 'python-pycurl', 'vim', 'screen', 'language-pack-en', 'git-core',
             'subversion', 'cron', 'curl', 'man', 'build-essential', 'python-dev', 'libpq-dev',
             'python-psycopg2', 'libcurl4-gnutls-dev', 'debconf-utils', 'ntp',
