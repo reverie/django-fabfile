@@ -19,7 +19,6 @@ DOMAIN = 'project.com'
 GIT_REPOSITORY = 'git@github.com:reverie/foobar.git'
 PRODUCTION_USERNAME = 'root'
 PRODUCTION_HOST = '66.228.59.82'
-DB_PASS = 'foo' # Should not contain quotes; coupled w/settings.py
 ADMIN_EMAIL = 'andrewbadr+django_fabfile@gmail.com'
 
 # Probably don't change:
@@ -27,8 +26,9 @@ DJANGO_PORT = 81
 BRANCH = 'master'
 SERVER_GROUP = 'app'
 ROLES = ['nginx', 'django', 'database', 'smtp']
-PROJECT_DIR = '/project/%s' % PROJECT_NAME # Not templatized in service config files
-VIRTUALENV = '/envs/%s' % PROJECT_NAME # Not templatized in service config files
+PROJECT_DIR = '/project/%s' % PROJECT_NAME # Not templatized in config files
+VIRTUALENV = '/envs/%s' % PROJECT_NAME # Not templatized in config files
+DB_PASS = 'foo' # Should not contain quotes; coupled w/settings.py # IGNORED, postgres is now configured to trust local connections
 
 #
 # Fabric Hacks

@@ -1,5 +1,5 @@
 server {
-    listen       80 default;
+    listen       80;
     server_name {{ DOMAIN }};
     rewrite ^(.*)$ http://{{ hostname }}$1 permanent;
 }
@@ -19,10 +19,6 @@ server {
 
     location /static {
         root /project/{{ PROJECT_NAME }}/current;
-    }
-
-    location /media {
-        root /envs/{{ PROJECT_NAME }}/lib/python2.6/site-packages/django/contrib/admin/;
     }
 
     location / {

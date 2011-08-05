@@ -1,2 +1,3 @@
  - use Fabric namespaces
  - Fix run_with_safe_error
+ - DRY django+fabfile settings (project name, domain)
