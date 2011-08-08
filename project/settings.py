@@ -77,7 +77,7 @@ MIDDLEWARE_CLASSES = (
 ROOT_URLCONF = '%s.urls' % PROJECT_NAME
 
 TEMPLATE_DIRS = (
-    root_dir('templates')
+    root_dir('templates'),
 )
 
 INSTALLED_APPS = (
