@@ -14,4 +14,5 @@ urlpatterns = patterns('main.views',
 
 urlpatterns += patterns('',
     (r'^favicon\.ico$', redirect_to, {'url': '/static/images/favicon.ico'}),
+    (r'^robots\.txt$', redirect_to, {'url': '/static/robots.txt'}),
 )
