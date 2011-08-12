@@ -4,6 +4,8 @@ I've used this Fabfile for several real-world Django projects. It makes it easy 
 
 It comes bundled with a default Django project that includes a few tweaks I usually use. Feel free to delete this project and replace it with your own.
 
+Subjective bits and/or watch the movie: http://andrewbadr.com/log/9/django-fabfile/
+ 
 # Feature Details #
 
 ## Features ##
