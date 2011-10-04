@@ -10,13 +10,13 @@ import os, os.path, time
 import functools
 
 from fabric.api import *
-from fabric.contrib.files import append, exists, comment
+from fabric.contrib.files import append, exists, comment, contains
 from fabric.contrib.files import upload_template as orig_upload_template
 
 # Stuff you're likely to change
 PROJECT_NAME = 'project'
 DOMAIN = 'project.com'
-GIT_REPOSITORY = 'git@github.com:reverie/foobar.git'
+GIT_CLONE_PATH = 'reverie/foobar.git'
 PRODUCTION_USERNAME = 'root'
 PRODUCTION_HOST = '66.228.59.82'
 ADMIN_EMAIL = 'andrewbadr+django_fabfile@gmail.com'
@@ -29,6 +29,9 @@ ROLES = ['nginx', 'django', 'database', 'smtp']
 PROJECT_DIR = '/project/%s' % PROJECT_NAME # Not templatized in config files
 VIRTUALENV = '/envs/%s' % PROJECT_NAME # Not templatized in config files
 DB_PASS = 'foo' # Should not contain quotes; coupled w/settings.py # IGNORED, postgres is now configured to trust local connections
+GIT_CLONE_USERNAME = 'git'
+GIT_CLONE_HOST = 'github.com'
+GIT_CLONE_PSEUDOHOST = PROJECT_NAME # Used to specify site-specific behavior for SSH if multiple projects are hosted on e.g. github.com
 
 #
 # Fabric Hacks
@@ -207,16 +210,38 @@ def install_common():
     sudo('chmod g+s %s' % log_dir)
     install_keys()
 
+def _key_destination(public=True):
+    key_name = PROJECT_NAME + '_rsa' + ('.pub' if public else '')
+    path = '.ssh/' + key_name
+    return home_dir(path)
+
 def install_keys():
     run('mkdir -p ~/.ssh')
     # Failing here? You need to generate a keypair and put it in the 'server' directory.
     # The point is to use this as a GitHub (or other) 'deploy key'. Delete this stuff
     # if you don't want that.
-    put('./server/id_rsa', home_dir('.ssh/id_rsa'))
-    put('./server/id_rsa.pub', home_dir('.ssh/id_rsa.pub'))
-    run('chmod 600 %s' % home_dir('.ssh/id_rsa'))
+    put('./server/id_rsa', _key_destination(public=False))
+    put('./server/id_rsa.pub', _key_destination())
+    run('chmod 600 %s' % _key_destination(public=False))
+
     # So we can git clone from git@github.com w/o manual confirmation:
     put('./server/known_hosts', home_dir('.ssh/known_hosts'))
+
+    # Add SSH configuration...
+    config_file = home_dir('.ssh/config')
+    lines =  [
+        'Host ' + GIT_CLONE_PSEUDOHOST,
+        '   HostName ' + GIT_CLONE_HOST,
+        '   IdentityFile ' + _key_destination(public=False)
+    ]
+    # Fabric's `append` does not run if the line is already in there.
+    # Multiple projects will have the same HostName line.
+    # We can't make the lines unique with a comment because ssh chokes; wants comments on their own line.
+    # Therefore, just append for now until something needs to change. (SSH uses first match.)
+    for l in lines:
+        assert "'" not in l
+        run("echo '%s' >> /root/.ssh/config" % l)
+        run("echo '%s' >> /root/.ssh/config" % '')
 
 def install_nginx():
     Apt.install('nginx')
@@ -372,6 +397,10 @@ class Deploy(object):
     def get_release_dir(name):
         assert name
         return os.path.join(PROJECT_DIR, 'releases', name)
+
+    @staticmethod
+    def get_git_repo():
+        return GIT_CLONE_USERNAME + '@' + GIT_CLONE_PSEUDOHOST + ':' + GIT_CLONE_PATH
  
     @staticmethod
     def upload_new_release():
@@ -380,7 +409,7 @@ class Deploy(object):
         if exists(release_dir):
             assert release_dir.startswith(os.path.join(PROJECT_DIR, 'releases'))
             run('rm -rf %s' % release_dir)
-        run('git clone %s %s' % (GIT_REPOSITORY, release_dir))
+        run('git clone %s %s' % (Deploy.get_git_repo(), release_dir))
         set_up_permissions(release_dir)
         current_commit = Deploy.get_current_commit()
         with cd(release_dir):
