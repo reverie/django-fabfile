@@ -1,10 +1,5 @@
-<html>
-    <head>
-        <title>Default Django Project</title>
-    </head>
-    <body>
-        Project setup looks good. Are static files being served correctly?
-        <script type="text/javascript" src="/static/test.js"></script>
-
-    </body>
-</html>
+{% extends 'base.html' %}
+{% block content %}
+Project setup looks good. Are static files being served correctly?
+<script type="text/javascript" src="/static/test.js"></script>
+{% endblock content %}
