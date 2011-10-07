@@ -16,9 +16,9 @@ from fabric.contrib.files import upload_template as orig_upload_template
 # Stuff you're likely to change
 PROJECT_NAME = 'project'
 DOMAIN = 'project.com'
-GIT_CLONE_PATH = 'reverie/foobar.git'
+GIT_CLONE_PATH = 'reverie/%s.git' % PROJECT_NAME
 PRODUCTION_USERNAME = 'root'
-PRODUCTION_HOST = '66.228.59.82'
+PRODUCTION_HOST = DOMAIN # Change this to an IP if your DNS isn't resolving yet
 ADMIN_EMAIL = 'andrewbadr+django_fabfile@gmail.com'
 
 # Probably don't change:
