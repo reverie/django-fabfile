@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
 {% block content %}
 Project setup looks good. Are static files being served correctly?
-<script type="text/javascript" src="/static/test.js"></script>
+<script type="text/javascript" src="{{ STATIC_URL }}test.js"></script>
 {% endblock content %}
