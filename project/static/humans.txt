@@ -1,0 +1,9 @@
+/* the humans responsible & colophon */
+/* humanstxt.org */
+
+/* TEAM */
+  Maker: Andrew Badr
+  Site: http://www.andrewbadr.com/
+  Twitter: http://twitter.com/andrewbadr
+  Location: San Francisco, CA
+
