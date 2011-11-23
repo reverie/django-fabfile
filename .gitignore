@@ -2,5 +2,6 @@ localsettings.py
 stagesettings.py
 *.pyc
 *.sqlite
+*.swp
 /static
 

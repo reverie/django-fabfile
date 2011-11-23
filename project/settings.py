@@ -37,10 +37,12 @@ MEDIA_ROOT = ''
 
 MEDIA_URL = ''
 
+# Put collected static files in project directory root
 STATIC_ROOT = root_dir('..', 'static')
 
 STATIC_URL = '/static/'
 
+# Collect static files from within app code directory
 STATICFILES_DIRS = (
     root_dir('static'),
 )

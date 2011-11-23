@@ -197,7 +197,7 @@ def install_common():
     append('/etc/environment', locale_env, use_sudo=True)
     Apt.install('python-setuptools', 'python-pycurl', 'vim', 'screen', 'language-pack-en', 'git-core',
             'subversion', 'cron', 'curl', 'man', 'build-essential', 'python-dev', 'libpq-dev',
-            'python-psycopg2', 'libcurl4-gnutls-dev', 'debconf-utils', 'ntp',
+            'python-psycopg2', 'libcurl4-gnutls-dev', 'debconf-utils', 'ntp', 'ack-grep',
             'memcached', 'python-memcache', # TODO: use a different memcached client
             )
     sudo('easy_install -U setuptools')
