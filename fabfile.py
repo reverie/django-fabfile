@@ -32,6 +32,8 @@ DB_PASS = 'foo' # Should not contain quotes; coupled w/settings.py # IGNORED, po
 GIT_CLONE_USERNAME = 'git'
 GIT_CLONE_HOST = 'github.com'
 GIT_CLONE_PSEUDOHOST = PROJECT_NAME # Used to specify site-specific behavior for SSH if multiple projects are hosted on e.g. github.com
+PG_VERSION = (8, 4)
+PYTHON_VERSION = (2,6)
 
 #
 # Fabric Hacks
@@ -299,7 +301,8 @@ def configure_nginx():
 
 def configure_django():
     upload_template('./server/django/wsgi.py', os.path.join(PROJECT_DIR, 'wsgi.py'), use_jinja=True, context={
-        'PROJECT_NAME': PROJECT_NAME
+        'PROJECT_NAME': PROJECT_NAME,
+        'PYTHON_VERSION_STR': "%d.%d" % PYTHON_VERSION,
     })
     upload_template('./server/django/vhost', '/etc/apache2/sites-available/%s' % PROJECT_NAME, use_sudo=True, use_jinja=True, context={
         'DJANGO_PORT': DJANGO_PORT,
@@ -346,13 +349,14 @@ def run_with_safe_error(cmd, safe_error, use_sudo=False, user=None):
             )
 
 def configure_database():
-    config_dir = '/etc/postgresql/8.4/main'
+    config_dir = '/etc/postgresql/%d.%d/main' % PG_VERSION
     sudo('mkdir -p %s' % config_dir)
     for filename in ['environment', 'pg_ctl.conf', 'pg_hba.conf', 'pg_ident.conf', 'postgresql.conf', 'start.conf']:
         local_file = os.path.join('./server/database', filename)
         remote_file = os.path.join(config_dir, filename)
         upload_template( local_file, remote_file, use_sudo=True, use_jinja=True, context={
-            'PROJECT_NAME': PROJECT_NAME
+            'PROJECT_NAME': PROJECT_NAME,
+            'PG_VERSION_STRING': "%d.%d" % PG_VERSION,
         })
         sudo('chown %s:%s %s' % ('postgres', 'postgres', remote_file))
     run_with_safe_error("createdb %s" % PROJECT_NAME, 'some dumb error', use_sudo=True, user='postgres')
@@ -503,7 +507,10 @@ def reload_django():
     sudo('apache2ctl graceful')
 
 def reload_database():
-    sudo('/etc/init.d/postgresql-8.4 reload')
+    if PG_VERSION < (9, 0):
+        sudo('/etc/init.d/postgresql-8.4 reload')
+    else:
+        sudo('/etc/init.d/postgresql reload')
 
 def restart_nginx():
     sudo('/etc/init.d/nginx restart')
@@ -512,7 +519,10 @@ def restart_django():
     sudo('apache2ctl graceful || apache2ctl start')
 
 def restart_database():
-    sudo('/etc/init.d/postgresql-8.4 restart || /etc/init.d/postgresql-8.4 start')
+    if PG_VERSION < (9, 0):
+        sudo('/etc/init.d/postgresql-8.4 restart || /etc/init.d/postgresql-8.4 start')
+    else:
+        sudo('/etc/init.d/postgresql restart || /etc/init.d/postgresql start')
 
 def restart_smtp():
     sudo('/etc/init.d/postfix restart')
