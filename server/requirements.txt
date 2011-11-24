@@ -1,8 +1,7 @@
 Django
 Fabric
 South
-django-picklefield
 django-registration
 -e git+http://github.com/facebook/python-sdk.git#egg=facebook-python-sdk
-psycopg2
+psycopg2<=2.4.1
 virtualenv
