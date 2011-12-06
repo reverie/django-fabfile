@@ -458,7 +458,7 @@ class Deploy(object):
 def list_releases():
     with cd(os.path.join(PROJECT_DIR, 'releases')):
         run('''ls -ltc | grep -v total | awk '{print $6 " " $7 " " $8}' | head -n 10''')
-        run('ls -l %s | cut -d " " -f "10"' % os.path.join(PROJECT_DIR, CURRENT_RELEASE_DIR))
+        #run('ls -l %s | cut -d " " -f "10"' % os.path.join(PROJECT_DIR, CURRENT_RELEASE_DIR))
 
 # Two-step Deploy; use this for HA multi-server setup:
 # 1. deploy_prep_new_release
