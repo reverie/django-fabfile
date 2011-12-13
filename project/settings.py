@@ -147,6 +147,9 @@ CACHES = {
     }
 }
 
+# Prevent project cache collisions
+CACHE_MIDDLEWARE_KEY_PREFIX = PROJECT_NAME + ':'
+
 try:
     from stagesettings import *
 except ImportError:
