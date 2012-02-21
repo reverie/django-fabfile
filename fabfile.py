@@ -242,8 +242,8 @@ def install_keys():
     # Therefore, just append for now until something needs to change. (SSH uses first match.)
     for l in lines:
         assert "'" not in l
-        run("echo '%s' >> /root/.ssh/config" % l)
-        run("echo '%s' >> /root/.ssh/config" % '')
+        run("echo '%s' >> %s" % (l, config_file))
+        run("echo '%s' >> %s" % ('', config_file))
 
 def install_nginx():
     Apt.install('nginx')
