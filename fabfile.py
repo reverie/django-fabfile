@@ -122,14 +122,16 @@ class Pip(object):
 
     @staticmethod
     def install(*pkgs):
+        pip =  os.path.join(VIRTUALENV, 'bin', 'pip')
         for pkg in pkgs:
-            run('pip install -E %s -U %s' % (VIRTUALENV, pkg))
+            run('%s install -U %s' % (pip, pkg))
 
     @staticmethod
     def install_requirements():
         REMOTE_FILENAME = './tmp_requirements.txt'
+        pip =  os.path.join(VIRTUALENV, 'bin', 'pip')
         put('./server/requirements.txt', REMOTE_FILENAME)
-        run('pip install -E %s -r %s' % (VIRTUALENV, REMOTE_FILENAME))
+        run('%s install -r %s' % (pip, REMOTE_FILENAME))
         run('rm %s' % REMOTE_FILENAME)
 
 def set_up_permissions(dirname):
