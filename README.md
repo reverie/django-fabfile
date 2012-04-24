@@ -11,7 +11,7 @@ Subjective bits: http://andrewbadr.com/log/9/django-fabfile/
 # Feature Details #
 
 ## Features ##
-- Fabfile for fully automated Django project installation and deploy process on an Ubuntu 10.4 server
+- Fabfile for fully automated Django project installation and deploy process on an Ubuntu 11.10 server
 - Stack: nginx, Apache, Django, PostgreSQL, Postfix
 - Cooperates with siblings -- run multiple of these on the same server
 - All services run on a single server
@@ -21,7 +21,7 @@ Subjective bits: http://andrewbadr.com/log/9/django-fabfile/
 - Compatibility with servers running setups other than this one. The Fabfile overwrites configuration files and in general might step on things.
 - Accepting inbound email
 - Configuration tuned for high traffic. Set your own values in the `server` directory's various config files.
-- Running on servers other than Ubuntu 10.4
+- Running on servers other than Ubuntu 11.10
 
 ## Non-configurable, but modifying the source should be easy ##
 - Runs your site from www.yourdomain.com
