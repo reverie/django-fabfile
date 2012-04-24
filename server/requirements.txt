@@ -2,6 +2,6 @@ Django
 Fabric
 South
 django-registration
--e git+http://github.com/facebook/python-sdk.git#egg=facebook-python-sdk
+-e git+https://github.com/pythonforfacebook/facebook-sdk#egg=facebook-python-sdk
 psycopg2<=2.4.1
 virtualenv
