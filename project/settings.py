@@ -105,7 +105,7 @@ TEMPLATE_CONTEXT_PROCESSORS = [
     "django.contrib.messages.context_processors.messages",
 ]
 
-DEFAULT_FROM_EMAIL = SERVER_EMAIL = 'web@%s.com' % DOMAIN
+DEFAULT_FROM_EMAIL = SERVER_EMAIL = 'web@%s' % DOMAIN
 
 # Registration
 ACCOUNT_ACTIVATION_DAYS = 3

@@ -6,3 +6,5 @@ django-registration
 psycopg2<=2.4.1
 virtualenv
 python-memcached
+django-uuidfield
+requests

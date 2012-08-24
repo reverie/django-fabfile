@@ -1,6 +1,6 @@
 from django.db import models
 
-from common.fields import UUIDField
+from uuidfield import UUIDField
 
 class BaseModel(models.Model):
     id = UUIDField(primary_key=True, auto=True)

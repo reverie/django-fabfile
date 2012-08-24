@@ -245,7 +245,7 @@ def install_keys():
     for l in lines:
         assert "'" not in l
         run("echo '%s' >> %s" % (l, config_file))
-        run("echo '%s' >> %s" % ('', config_file))
+    run("echo '%s' >> %s" % ('', config_file))
 
 def install_nginx():
     Apt.install('nginx')
@@ -259,6 +259,7 @@ def install_nginx():
 #    """
 #    put('./server/processor/compiler.jar', os.path.join(PROJECT_DIR, 'bin', 'compiler.jar'))
 #    put('./server/processor/processor', os.path.join(PROJECT_DIR, 'bin', 'processor'))
+#    sudo('chmod +x %s' % os.path.join(PROJECT_DIR, 'bin', 'processor'))
 
 def install_django():
     Pip.install_virtualenv()
@@ -459,7 +460,7 @@ class Deploy(object):
 
 def list_releases():
     with cd(os.path.join(PROJECT_DIR, 'releases')):
-        run('''ls -ltc | grep -v total | awk '{print $6 " " $7 " " $8}' | head -n 10''')
+        run('''ls -ltc | grep -v total | awk '{print $6 " " $7 " " $8 " " $9}' | head -n 10''')
         #run('ls -l %s | cut -d " " -f "10"' % os.path.join(PROJECT_DIR, CURRENT_RELEASE_DIR))
 
 # Two-step Deploy; use this for HA multi-server setup:

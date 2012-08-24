@@ -1,9 +1,11 @@
+from root_dir import root_dir
+
 DEBUG = True
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3', 
-        'NAME': 'dev.sqlite',
+        'NAME': root_dir('dev.sqlite'),
         'USER': '',
         'PASSWORD': '',
         'HOST': '',
@@ -17,3 +19,5 @@ CACHES = {
     }
 }
 
+# python -m smtpd -n -c DebuggingServer localhost:1025
+EMAIL_PORT = 1025

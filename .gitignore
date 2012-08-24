@@ -3,5 +3,6 @@ stagesettings.py
 *.pyc
 *.sqlite
 *.swp
+*.swo
 /static
-
+/build
