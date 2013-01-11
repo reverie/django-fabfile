@@ -2,6 +2,7 @@ localsettings.py
 stagesettings.py
 *.pyc
 *.sqlite
+*.sqlite-journal
 *.swp
 *.swo
 /static
