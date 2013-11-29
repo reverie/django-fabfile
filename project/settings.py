@@ -23,7 +23,9 @@ DATABASES = {
     }
 }
 
-TIME_ZONE = 'America/Los_Angeles'
+TIME_ZONE = 'UTC'
+
+UZE_TZ = True
 
 LANGUAGE_CODE = 'en-us'
 

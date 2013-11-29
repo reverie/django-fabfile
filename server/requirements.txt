@@ -8,3 +8,4 @@ virtualenv
 python-memcached
 django-uuidfield
 requests
+pytz

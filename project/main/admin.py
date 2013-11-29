@@ -13,3 +13,16 @@ def autoregister(*app_list):
                 pass
 
 autoregister('main')
+
+
+
+# from http://stackoverflow.com/questions/2270537/how-to-customize-the-auth-user-admin-page-in-django-crud
+from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.models import User
+
+UserAdmin.list_display = ['username', 'email', 'date_joined', 'is_active', 'is_staff']
+UserAdmin.ordering = ['-date_joined']
+
+admin.site.unregister(User)
+admin.site.register(User, UserAdmin)
+
